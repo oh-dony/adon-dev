@@ -156,20 +156,20 @@ def executar(ids, respostas, avisar, pasta_logs, catalogo=None):
         script = os.path.join(pasta_logs, "sistema.sh")
         with open(script, "w") as f:
             f.write(roteiro_sistema(com_sistema, env, os.path.join(pasta_logs, ".apt-atualizado")))
-        proc = subprocess.Popen(comando_root() + [script], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         atual, vistos = None, set()
-        for linha in proc.stdout:
-            if linha.startswith("@@ "):
-                _, rid, status = linha.split()
-                atual = rid if status == "rodando" else None
-                vistos.add(rid)
-                if status == "falhou":
-                    resultado[rid] = "falhou"
-                avisar(rid, "sistema", status)
-            elif atual:
-                with open(log[atual], "a") as out:
-                    out.write(linha)
-        proc.wait()
+        with subprocess.Popen(comando_root() + [script], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                              text=True) as proc:
+            for linha in proc.stdout:
+                if linha.startswith("@@ "):
+                    _, rid, status = linha.split()
+                    atual = rid if status == "rodando" else None
+                    vistos.add(rid)
+                    if status == "falhou":
+                        resultado[rid] = "falhou"
+                    avisar(rid, "sistema", status)
+                elif atual:
+                    with open(log[atual], "a") as out:
+                        out.write(linha)
         if not vistos:  # pkexec recusado ou senha cancelada: nada rodou
             for r in receitas:
                 resultado[r.id] = "cancelado"

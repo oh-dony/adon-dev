@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 1000 1000">
+  <!-- Identidade "adon": A sem a barra do meio; aqui, um prompt de terminal no lugar do play -->
+  <rect width="1000" height="1000" rx="220" fill="#a6e3a1"/>
+  <g transform="translate(170 180) scale(0.66)" fill="#11111b" stroke="#11111b" stroke-linejoin="round">
+    <polygon points="110,880 440,120 560,120 890,880 700,880 500,330 300,880" stroke-width="28"/>
+    <polyline points="420,640 500,712 420,784" fill="none" stroke-width="52" stroke-linecap="round"/>
+    <line x1="530" y1="800" x2="600" y2="800" stroke-width="44" stroke-linecap="round"/>
+  </g>
+</svg>
