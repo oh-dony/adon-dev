@@ -1,4 +1,5 @@
 # Motor do Adon Dev: receitas de instalação e quem as executa. Não depende de GTK (testável sozinho).
+import getpass
 import os
 import shlex
 import subprocess
@@ -65,8 +66,97 @@ export PATH="$HOME/.local/share/fnm:$PATH"; eval "$(fnm env --shell bash)"
 node --version && npm --version
 """,
     ),
+    Receita(
+        id="gh", titulo="GitHub CLI", grupo="Essenciais",
+        resumo="O comando gh: criar repositórios, abrir pull requests e entrar no GitHub pelo terminal",
+        instalado="command -v gh >/dev/null",
+        sistema="""
+apt_instalar curl ca-certificates
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+chmod a+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
+apt_repositorio_novo
+apt_instalar gh
+""",
+        teste="gh --version",
+        precisa=("git",),
+    ),
+    Receita(
+        id="vscode", titulo="Visual Studio Code", grupo="Editores",
+        resumo="O editor de código mais usado, direto do repositório da Microsoft (recebe atualizações)",
+        instalado="command -v code >/dev/null || flatpak info com.visualstudio.code >/dev/null 2>&1",
+        sistema="""
+apt_instalar curl gpg ca-certificates
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor --yes -o /etc/apt/keyrings/packages.microsoft.gpg
+echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+# o pacote pergunta se pode adicionar o repositório; já adicionamos acima
+echo "code code/add-microsoft-repo boolean false" | debconf-set-selections
+apt_repositorio_novo
+apt_instalar code
+""",
+        teste="code --version",
+    ),
+    Receita(
+        id="php", titulo="PHP + Composer", grupo="Linguagens",
+        resumo="PHP com as extensões que Laravel e WordPress pedem, e o Composer para as dependências",
+        instalado="command -v php >/dev/null",
+        sistema="""
+apt_instalar php-cli php-common php-mbstring php-xml php-curl php-zip php-mysql php-sqlite3 php-intl php-bcmath php-gd unzip curl
+if [ ! -x /usr/local/bin/composer ]; then
+  T=$(mktemp -d)
+  curl -fsSL -o "$T/setup.php" https://getcomposer.org/installer
+  ESPERADO=$(curl -fsSL https://composer.github.io/installer.sig)
+  OBTIDO=$(php -r "echo hash_file('sha384', '$T/setup.php');")
+  [ "$ESPERADO" = "$OBTIDO" ] || { echo "Instalador do Composer com assinatura inválida"; exit 1; }
+  php "$T/setup.php" --quiet --install-dir=/usr/local/bin --filename=composer
+  rm -rf "$T"
+fi
+""",
+        teste="php --version && composer --version",
+    ),
+    Receita(
+        id="python", titulo="Python + uv", grupo="Linguagens",
+        resumo="Python com o uv, que cria ambientes, instala pacotes e outras versões do Python em segundos",
+        instalado="command -v uv >/dev/null || [ -x ~/.local/bin/uv ]",
+        sistema="apt_instalar python3 python3-venv python3-pip curl ca-certificates",
+        usuario="""
+if [ ! -x ~/.local/bin/uv ]; then
+  case "$(uname -m)" in aarch64|arm64) A=aarch64 ;; *) A=x86_64 ;; esac
+  T=$(mktemp -d)
+  curl -fsSL -o "$T/uv.tar.gz" "https://github.com/astral-sh/uv/releases/latest/download/uv-$A-unknown-linux-gnu.tar.gz"
+  tar -xzf "$T/uv.tar.gz" -C "$T"
+  mkdir -p ~/.local/bin && install -m 0755 "$T"/uv-*/uv "$T"/uv-*/uvx ~/.local/bin/
+  rm -rf "$T"
+fi
+no_terminal python 'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
+""",
+        teste='export PATH="$HOME/.local/bin:$PATH"; python3 --version && uv --version',
+    ),
+    Receita(
+        id="docker", titulo="Docker", grupo="Ferramentas",
+        resumo="Containers e Docker Compose, do repositório oficial, já liberado para usar sem sudo",
+        instalado="command -v docker >/dev/null",
+        sistema="""
+apt_instalar ca-certificates curl
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+. /etc/os-release
+# Zorin, Mint e Pop!_OS informam a versão do Ubuntu em que se baseiam em UBUNTU_CODENAME
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME:-$VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
+apt_repositorio_novo
+apt_instalar docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+usermod -aG docker "$ADON_USUARIO"
+systemctl enable --now docker 2>/dev/null || true
+""",
+        teste='docker --version && docker compose version && getent group docker | grep -qw "$USER"',
+    ),
 ]
 POR_ID = {r.id: r for r in RECEITAS}
+# o que só passa a valer depois de sair e entrar de novo na sessão
+PEDE_NOVO_LOGIN = {"docker": "Para usar o Docker sem sudo, saia e entre de novo na sua sessão."}
 
 # funções disponíveis dentro das receitas
 PRELUDIO_SISTEMA = r"""
@@ -75,6 +165,10 @@ apt_instalar() {
   # um apt-get update por execução, mesmo com várias receitas
   if [ ! -f "$ADON_APT_ATUALIZADO" ]; then apt-get update -q && touch "$ADON_APT_ATUALIZADO"; fi
   apt-get install -y -q "$@"
+}
+apt_repositorio_novo() {
+  # depois de adicionar um repositório, o próximo apt_instalar precisa atualizar a lista
+  rm -f "$ADON_APT_ATUALIZADO"
 }
 """
 PRELUDIO_USUARIO = r"""
@@ -109,7 +203,9 @@ def plano(ids, catalogo=None):
 
 
 def ambiente(respostas):
-    return {CAMPOS[k]: v for k, v in respostas.items() if k in CAMPOS and v}
+    env = {CAMPOS[k]: v for k, v in respostas.items() if k in CAMPOS and v}
+    env["ADON_USUARIO"] = getpass.getuser()  # o roteiro de sistema roda como root e precisa saber quem é a pessoa
+    return env
 
 
 def _exports(env):

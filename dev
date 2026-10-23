@@ -8,6 +8,9 @@ case "$1" in
     python3 -m unittest discover -s tests "${@:2}"
     find . -name __pycache__ -prune -exec rm -rf {} +
     ;;
+  run)     # abre o app direto do código
+    exec python3 adon_dev.py
+    ;;
   docker)  # instala receitas de verdade num Ubuntu limpo; ex.: ./dev docker git,node
     for img in ${3:-ubuntu:22.04 ubuntu:24.04}; do
       echo "### $img"

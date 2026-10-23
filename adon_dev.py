@@ -339,6 +339,9 @@ class Janela(Adw.ApplicationWindow):
     def _pg_pronto(self):
         conteudo = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         conteudo.append(Gtk.Label(label="Abra um terminal novo para usar o que foi instalado.", xalign=0, wrap=True))
+        for rid, aviso in M.PEDE_NOVO_LOGIN.items():
+            if self.resultado.get(rid) == "ok":
+                conteudo.append(Gtk.Label(label=f"⚠ {aviso}", xalign=0, wrap=True, css_classes=["heading"]))
         chave = Path.home() / ".ssh" / "id_ed25519.pub"
         if self.resultado.get("git") == "ok" and chave.exists():
             texto = chave.read_text().strip()

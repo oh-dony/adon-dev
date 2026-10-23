@@ -26,6 +26,16 @@ def esperar(cond, segundos=20):
     return cond()
 
 
+def rotulos(widget):
+    out, filho = [], widget.get_first_child()
+    if hasattr(widget, "get_label") and isinstance(widget.get_label(), str):
+        out.append(widget.get_label())
+    while filho:
+        out += rotulos(filho)
+        filho = filho.get_next_sibling()
+    return out
+
+
 @unittest.skipUnless(TEM_TELA, "precisa de tela (sessão gráfica ou xvfb-run)")
 class Assistente(unittest.TestCase):
     def setUp(self):
@@ -77,6 +87,16 @@ class Assistente(unittest.TestCase):
         row = self.win.linhas["boa"][0]
         self.assertIn("Cancelado", row.get_subtitle())
         self.assertTrue(self.win.pg_progresso.botao.get_visible())
+
+    def test_avisa_quando_precisa_sair_e_entrar_de_novo(self):
+        """O Docker só funciona sem sudo depois de um novo login (o grupo vale a partir da sessão)."""
+        self.cat.append(M.Receita("docker", "Docker", "", "Grupo", instalado="false", sistema="true"))
+        self.win.destroy()
+        self.win = D.Janela(None, self.cat)
+        self.preparar("docker")
+        self.assertEqual(self.win.pilha.get_visible_child_name(), "pronto")
+        textos = rotulos(self.win.pilha.get_child_by_name("pronto"))
+        self.assertTrue(any("saia e entre de novo" in t for t in textos), textos)
 
     def test_perfil_tudo_marca_todas(self):
         self.win._perfil(None)

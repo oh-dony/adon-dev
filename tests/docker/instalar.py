@@ -16,6 +16,11 @@ print("RESULTADO", json.dumps(res))
 confere = {
     "git": 'git config --global user.name && git config --global user.email && test -f ~/.ssh/id_ed25519.pub',
     "node": "node --version && npm --version",
+    "gh": "gh --version | head -1",
+    "vscode": "code --version | head -1",
+    "php": "php --version | head -1 && composer --version",
+    "python": "python3 --version && uv --version",
+    "docker": "docker --version && docker compose version",
 }
 ok = all(v == "ok" for v in res.values())
 for i in ids:

@@ -4,7 +4,7 @@ O adon dev prepara o ambiente de programação de quem acabou de instalar o Linu
 marca o que vai usar (Git, Node, PHP, Docker…) e o app instala e configura tudo.
 
 - [motor.py](motor.py): receitas e quem as executa. **Sem GTK**: testável sozinho.
-- Interface (GTK4/libadwaita): em construção.
+- [adon_dev.py](adon_dev.py): o assistente (GTK4/libadwaita), em telas: o que vai usar → Git → resumo → progresso → pronto.
 
 ## Regra nº 1: todo bug vira teste automatizado
 
@@ -25,6 +25,7 @@ Se for inviável automatizar, diga isso ao usuário, explique por quê e registr
 | Tipo de bug | Onde | Como rodar |
 |---|---|---|
 | Lógica do motor: ordem, senha, falhas, cancelamento, aspas | `tests/test_motor.py` (receitas de mentira, sem root nem internet) | `./dev test` |
+| Tela, fluxo do assistente, avisos | `tests/test_ui.py` (receitas de mentira; pulado sem tela) | `./dev test` numa sessão gráfica |
 | Uma receita não instala ou não funciona num Ubuntu de verdade | `tests/docker/` (instala de verdade como usuário comum) | `./dev docker git,node` |
 
 ## Regras das receitas
