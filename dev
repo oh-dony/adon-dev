@@ -1,0 +1,20 @@
+#!/bin/bash
+# Atalhos do projeto. Uso: ./dev <comando>
+set -e
+cd "$(dirname "$0")"
+
+case "$1" in
+  test)    # testes rápidos do motor (sem root nem internet)
+    python3 -m unittest discover -s tests "${@:2}"
+    find . -name __pycache__ -prune -exec rm -rf {} +
+    ;;
+  docker)  # instala receitas de verdade num Ubuntu limpo; ex.: ./dev docker git,node
+    for img in ${3:-ubuntu:22.04 ubuntu:24.04}; do
+      echo "### $img"
+      tests/docker/rodar.sh "$img" "${2:?diga as receitas, ex. git,node}"
+    done
+    ;;
+  *)
+    sed -n 's|^  \([a-z]*\)) *# \(.*\)|  ./dev \1  — \2|p' "$0"
+    ;;
+esac
